@@ -6,9 +6,9 @@ import (
 )
 
 type respTemplate struct {
-	Status int    `json:"status"`
-	Info   string `json:"info"`
-	Data   []byte `json:"data"` //json序列化后的字符串
+	Status int         `json:"status"`
+	Info   string      `json:"info"`
+	Data   interface{} `json:"data"` //json序列化后的字符串
 }
 
 // 未预料到的错误(90000)
@@ -32,6 +32,15 @@ func RespOK(c *gin.Context) {
 	c.JSON(http.StatusOK, OK)
 }
 
+// 回复查询成功
+func RespQuerySuccess(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusOK, respTemplate{
+		Status: 10000,
+		Info:   "success",
+		Data:   data,
+	})
+}
+
 // 客户端操作有误(2xxxx)
 // 输入格式有误
 var FormatError = respTemplate{
@@ -42,6 +51,28 @@ var FormatError = respTemplate{
 // 回复输入格式错误
 func RespFormatError(c *gin.Context) {
 	c.JSON(http.StatusForbidden, FormatError)
+}
+
+// 已登录
+var LoggedIn = respTemplate{
+	Status: 20002,
+	Info:   "You are already logged in",
+}
+
+// 回复已登录
+func RespLoggedin(c *gin.Context) {
+	c.JSON(http.StatusOK, LoggedIn)
+}
+
+// 未登录
+var DidNotLogin = respTemplate{
+	Status: 20003,
+	Info:   "You didn't login",
+}
+
+// 回复未登陆
+func RespDidNotLogin(c *gin.Context) {
+	c.JSON(http.StatusOK, DidNotLogin)
 }
 
 // 个人信息错误(3xxxx)
@@ -86,6 +117,29 @@ var IncorrectPassword = respTemplate{
 
 func RespIncorrectPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, IncorrectPassword)
+}
+
+// 文章方面(4xxxx)
+// 文章不存在/aID错误
+var AIDError = respTemplate{
+	Status: 40001,
+	Info:   "The aID is incorrect",
+}
+
+// 回复文章不存在/aID错误
+func RespAIDError(c *gin.Context) {
+	c.JSON(http.StatusForbidden, AIDError)
+}
+
+// 没有文章了
+var NoArticleExit = respTemplate{
+	Status: 40002,
+	Info:   "There is no more Articles",
+}
+
+// 回复没有文章了
+func RespNoArticleExit(c *gin.Context) {
+	c.JSON(http.StatusOK, NoArticleExit)
 }
 
 // 服务器错误(5xxxx)

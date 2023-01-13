@@ -15,12 +15,11 @@ import (
 func SearchUser(attribute string, value string) (u model.User, err error) {
 	var row *sql.Row
 	switch attribute {
-	case "uid":
+	case "uID":
 		//将uid的前面的"uid"字符去除并转化为int类型
-		id, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(value), []byte("uid"))))
+		id, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(value), []byte("uID"))))
 		if err != nil {
-			u = model.User{}
-			return u, err
+			return model.User{}, err
 		}
 		row = DB.QueryRow("select id, mail, nickname, position ,company, introduction, articleNum, collectNum, likeNum from users where id = ?", id)
 	case "mail":
@@ -46,13 +45,13 @@ func SearchUser(attribute string, value string) (u model.User, err error) {
 func SearchUserPassword(attribute string, value string) (password string, err error) {
 	var row *sql.Row
 	switch attribute {
-	case "uid":
-		//将uid的前面的"uid"字符去除并转化为int类型
-		id, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(value), []byte("uid"))))
+	case "uID":
+		//将uid的前面的"uID"字符去除并转化为int类型
+		id, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(value), []byte("uID"))))
 		if err != nil {
 			return "", err
 		}
-		row = DB.QueryRow("select password from users where id = ?", id)
+		row = DB.QueryRow("select password from users where ID = ?", id)
 	case "mail":
 		row = DB.QueryRow("select password from users where mail = ?", value)
 	case "nickname":

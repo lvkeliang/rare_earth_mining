@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"rare_earth_mining_BE/model"
 	"rare_earth_mining_BE/service"
 	"rare_earth_mining_BE/util"
@@ -128,6 +129,81 @@ func Login(c *gin.Context) {
 	u, err := service.SearchUser("mail", mail)
 	//fmt.Println(u.ID)
 	//fmt.Println(strconv.Itoa(int(u.ID)))
-	c.SetCookie("uid", "uid"+strconv.Itoa(int(u.ID)), 604800, "", "/", false, false)
+	c.SetCookie("uID", "uID"+strconv.Itoa(int(u.ID)), 604800, "", "/", false, false)
 	util.RespOK(c)
+}
+
+// 中间件
+// 必须在登录状态才能访问
+// 未登录则重定向到登录页面
+func LoginRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		cookie, err := c.Cookie("uID")
+
+		if err != nil {
+			if err == http.ErrNoCookie {
+				//处理未登录
+				util.RespDidNotLogin(c)
+			} else {
+				//处理意外情况
+				util.RespUnexceptedError(c)
+			}
+			//终止
+			c.Abort()
+			return
+		}
+
+		_, err = service.SearchUser("uID", cookie)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				//处理cookie有问题
+				util.RespDidNotLogin(c)
+			} else {
+				//处理意外情况
+				util.RespUnexceptedError(c)
+			}
+			//终止
+			c.Abort()
+			return
+		}
+
+		//若已登录则执行下个中间件
+		c.Next()
+		return
+	}
+}
+
+// 中间件
+// 必须在不登录状态才能访问
+// 已登录则重定向到首页页面
+func NotLoginRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		cookie, err := c.Cookie("uID")
+		if err == nil {
+			_, err = service.SearchUser("uID", cookie)
+			if err == sql.ErrNoRows {
+				//处理cookie有问题
+				util.RespDidNotLogin(c)
+			} else {
+				//处理已登录
+				util.RespLoggedin(c)
+			}
+			c.Abort()
+			return
+		}
+
+		if err != http.ErrNoCookie {
+			//处理未预料到的情况
+			util.RespUnexceptedError(c)
+			c.Abort()
+			return
+		}
+
+		//若未登录则执行下个中间件
+		c.Next()
+		return
+	}
 }

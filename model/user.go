@@ -11,4 +11,5 @@ type User struct {
 	ArticleNum   string `json:"articleNum"`
 	CollectNum   string `json:"collectNum"`
 	LikeNum      string `json:"likeNum"`
+	HeadPortrait string `json:"headPortrait"`
 }

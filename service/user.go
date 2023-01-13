@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"rare_earth_mining_BE/dao"
 	"rare_earth_mining_BE/model"
 )
@@ -23,7 +22,7 @@ func SearchUserPassword(attribute string, value string) (password string, err er
 }
 
 func CreateUser(u model.User) error {
-	fmt.Println("执行service.CreateUser")
+	//fmt.Println("执行service.CreateUser")
 	err := dao.CreateUser(u)
 	return err
 }
