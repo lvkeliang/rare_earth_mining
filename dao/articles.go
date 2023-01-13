@@ -62,23 +62,13 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 			return briefArticleInformations, err
 		}
 
-		//fmt.Println("执行到1了")
 		defer rows.Close()
-		//fmt.Println("执行到2了")
 		for rows.Next() {
-			//fmt.Println("执行到3了")
 			err = rows.Scan(&publisher.ID, &publisher.Nickname, &article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
 			if err != nil {
 				return briefArticleInformations, err
 			}
-
-			//查询发布者的信息
-
-			//将结果储存到输出的map中
-			//fmt.Printf("article: %v\n", article)
-			//fmt.Printf("num: %v\n", num)
 			briefArticleInformations[num] = model.BriefArticleInformation{User: publisher, Article: article}
-			//fmt.Printf("articles: %v\n", articles)
 			num++
 		}
 
@@ -89,11 +79,8 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 			return briefArticleInformations, err
 		}
 
-		//fmt.Println("执行到1了")
 		defer rows.Close()
-		//fmt.Println("执行到2了")
 		for rows.Next() {
-			//fmt.Println("执行到3了")
 			err = rows.Scan(&publisher.ID, &publisher.Nickname, &article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
 			if err != nil {
 				return briefArticleInformations, err
@@ -101,12 +88,29 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 			briefArticleInformations[num] = model.BriefArticleInformation{User: publisher, Article: article}
 			num++
 		}
-	case "user":
+
+	case "publisher":
+		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles. uID = ? and users.ID = articles.uID and state = 2 order by articles.ID desc LIMIT ?, ?", page.PublisheruID, (page.PageNumber-1)*page.Count, page.PageNumber*page.Count)
+		if err != nil {
+			return briefArticleInformations, err
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			err = rows.Scan(&publisher.ID, &publisher.Nickname, &article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
+			if err != nil {
+				return briefArticleInformations, err
+			}
+			briefArticleInformations[num] = model.BriefArticleInformation{User: publisher, Article: article}
+			num++
+		}
 
 	default:
 		err = util.FormError
+		return nil, err
 
 	}
+
 	return
 }
 

@@ -37,7 +37,7 @@ func BriefArticles(c *gin.Context) {
 	}
 	page.Count = int64(temp)
 
-	//获取第一页第一个文章ID
+	//获取第一页第一个文章aID
 	firstaID := c.PostForm("firstaID")
 
 	//未传入firstaID的话，即第一次请求
@@ -53,8 +53,23 @@ func BriefArticles(c *gin.Context) {
 
 	page.FirstaID = int64(temp)
 
+	//获取文章发布者的uID
+	publisheruID := c.PostForm("publisheruID")
+
+	temp = 0
+
+	if len(publisheruID) >= 1 {
+		temp, err = strconv.Atoi(string(bytes.TrimPrefix([]byte(publisheruID), []byte("uID"))))
+		if err != nil {
+			util.RespUserNotExist(c)
+			return
+		}
+	}
+
+	page.PublisheruID = int64(temp)
+
 	//检验提交的表单数据合法性
-	if ( /*page.Mode != "recommend" && */ page.Mode != "newest" && page.Mode != "popularity" /*&& page.Mode != "user"*/) || page.PageNumber <= 0 || page.Count < 0 || page.FirstaID < 0 {
+	if ( /*page.Mode != "recommend" && */ page.Mode != "newest" && page.Mode != "popularity" && page.Mode != "publisher") || page.PageNumber <= 0 || page.Count < 0 || page.FirstaID < 0 || (page.Mode == "publisher" && page.PublisheruID <= 0) {
 		util.RespFormatError(c)
 		return
 	}
