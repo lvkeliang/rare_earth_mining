@@ -4,6 +4,7 @@ import (
 	"rare_earth_mining_BE/model"
 	"rare_earth_mining_BE/util"
 	"strconv"
+	"strings"
 )
 
 func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.BriefArticleInformation, err error) {
@@ -20,6 +21,11 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 	//临时变量
 	var tempstr string
 	var tempint int
+
+	//处理tags字符串
+	page.Tags = "%" + strings.Replace(page.Tags, ",", "%%", -1) + "%"
+	//处理classification字符串
+	page.Classification = "%" + page.Classification + "%"
 
 	switch page.Mode {
 	case "recommend":
@@ -56,7 +62,12 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 			//fmt.Printf("page.FirstaID: %v\n", page.FirstaID)
 		}
 		//fmt.Println("执行到1了")
-		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where users.ID = articles.uID and state = 2 and articles.ID <= ? order by articles.publishTime desc LIMIT ?", page.FirstaID-page.Count*(page.PageNumber-1), page.Count)
+		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.classification LIKE ? and articles.tags LIKE ? and users.ID = articles.uID and state = 2 and articles.ID <= ? order by articles.ID desc LIMIT ?", page.Classification, page.Tags, page.FirstaID-page.Count*(page.PageNumber-1), page.Count)
+		//rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.classification LIKE ? ", "%"+page.Classification+"%")
+		//fmt.Println("'%" + page.Classification + "%'")
+		//fmt.Printf("page.FirstaID: %v\n", page.FirstaID)
+		//fmt.Printf("page.FirstaID-page.Count*(page.PageNumber-1): %v\n", page.FirstaID-page.Count*(page.PageNumber-1))
+
 		if err != nil {
 			//fmt.Println("执行到2了")
 			return briefArticleInformations, err
@@ -73,7 +84,7 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 		}
 
 	case "popularity":
-		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where users.ID = articles.uID and state = 2 order by articles.popularityValue desc LIMIT ?, ?", (page.PageNumber-1)*page.Count, page.PageNumber*page.Count)
+		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.classification LIKE ? and articles.tags LIKE ? and users.ID = articles.uID and state = 2 order by articles.popularityValue desc LIMIT ?, ?", page.Classification, page.Tags, (page.PageNumber-1)*page.Count, page.PageNumber*page.Count)
 		if err != nil {
 			//fmt.Println("执行到2了")
 			return briefArticleInformations, err
@@ -90,7 +101,7 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 		}
 
 	case "publisher":
-		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles. uID = ? and users.ID = articles.uID and state = 2 order by articles.ID desc LIMIT ?, ?", page.PublisheruID, (page.PageNumber-1)*page.Count, page.PageNumber*page.Count)
+		rows, err := DB.Query("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.classification LIKE ? and articles.tags LIKE ? and articles. uID = ? and users.ID = articles.uID and state = 2 order by articles.ID desc LIMIT ?, ?", page.Classification, page.Tags, page.PublisheruID, (page.PageNumber-1)*page.Count, page.PageNumber*page.Count)
 		if err != nil {
 			return briefArticleInformations, err
 		}

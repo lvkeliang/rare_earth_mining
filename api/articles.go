@@ -68,6 +68,12 @@ func BriefArticles(c *gin.Context) {
 
 	page.PublisheruID = int64(temp)
 
+	//获取文章分类
+	page.Classification = c.PostForm("classification")
+
+	//获取文章标签
+	page.Tags = c.PostForm("tags")
+
 	//检验提交的表单数据合法性
 	if ( /*page.Mode != "recommend" && */ page.Mode != "newest" && page.Mode != "popularity" && page.Mode != "publisher") || page.PageNumber <= 0 || page.Count < 0 || page.FirstaID < 0 || (page.Mode == "publisher" && page.PublisheruID <= 0) {
 		util.RespFormatError(c)
