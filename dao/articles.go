@@ -1,6 +1,9 @@
 package dao
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"rare_earth_mining_BE/model"
 	"rare_earth_mining_BE/util"
 	"strconv"
@@ -122,6 +125,153 @@ func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.Br
 
 	}
 
+	return
+}
+
+func GetClassification() (classification string, err error) {
+	//临时储存分类名
+	var tempClassName string
+
+	rows, err := DB.Query("select className from articleClassification")
+	defer rows.Close()
+	if err != nil {
+		return classification, err
+	}
+	for rows.Next() {
+		err = rows.Scan(&tempClassName)
+		if err != nil {
+			return classification, err
+		}
+		classification += tempClassName + ","
+	}
+
+	classification = strings.TrimSuffix(classification, ",")
+
+	return
+}
+
+func GetTags() (tags string, err error) {
+	//临时储存分类名
+	var tempTag string
+
+	rows, err := DB.Query("select tag from articleTags")
+	defer rows.Close()
+	if err != nil {
+		return tags, err
+	}
+	for rows.Next() {
+		err = rows.Scan(&tempTag)
+		if err != nil {
+			return tags, err
+		}
+		tags += tempTag + ","
+	}
+
+	tags = strings.TrimSuffix(tags, ",")
+
+	return
+}
+
+func DetailArticle(aID int64) (article model.DetailArticle, err error) {
+
+	//fmt.Println("执行到1了")
+	//临时储存内容
+	var tempContent []byte
+
+	row := DB.QueryRow("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.ID = ?", aID)
+
+	if err = row.Err(); row.Err() != nil {
+		fmt.Printf("err: --- : %v\n", err)
+		return
+	}
+
+	err = row.Scan(&article.User.ID, &article.User.Nickname, &article.Article.ID, &article.Article.UID, &article.Article.Title, &article.Article.PublishTime, &article.Article.ViewerNum, &article.Article.LikeNum, &article.Article.CommentNum, &article.Article.Classification, &article.Article.Tags)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("article: --- : %v\n", article)
+	//fmt.Println("执行到2了")
+	//读取文件内容
+	file, err := os.Open("data/articles/" + strconv.Itoa(int(aID)) + ".html")
+	if err != nil {
+		return
+		//log.Fatal(err)
+	}
+	defer file.Close()
+
+	tempContent, err = io.ReadAll(file)
+	if err != nil {
+		return
+		//log.Fatal(err)
+	}
+
+	/*tempContent, err = ioutil.ReadFile("data/articles/" + strconv.Itoa(int(aID)))
+	if err != nil {
+		return
+	}
+	*/
+
+	article.Article.Content = string(tempContent)
+
+	//fmt.Println("执行到3了")
+	//fmt.Println(article)
+	//获取评论
+	if article.Article.CommentNum > 0 {
+		article.Comments, err = GetCommentsByoID("aID" + strconv.Itoa(int(aID)))
+	}
+
+	//fmt.Printf("aID" + strconv.Itoa(int(aID)))
+	//fmt.Println(article)
+	//fmt.Println("执行到4了")
+	return
+}
+
+func GetCommentsByoID(oID string) (comments map[int64]model.Comment, err error) {
+	//初始化
+	comments = make(map[int64]model.Comment)
+
+	//fmt.Println("执行到1了")
+	//计数
+	var num int64 = 0
+
+	//临时储存单个评论
+	var comment = model.Comment{}
+
+	//fmt.Println("执行到2了")
+	//查询
+	rows, err := DB.Query("select ID, uID, oID, publishTime, likeNum, commentNum, layer, content from comments where oID = ? order by likeNum desc", oID)
+	defer rows.Close()
+	if err != nil {
+		return map[int64]model.Comment{}, err
+	}
+
+	//fmt.Println("执行到3了")
+	for rows.Next() {
+		err = rows.Scan(&comment.ID, &comment.UID, &comment.OID, &comment.PublishTime, &comment.LikeNum, &comment.CommentNum, &comment.Layer, &comment.Content)
+		if err != nil {
+			return map[int64]model.Comment{}, err
+		}
+		//存入comments
+		comments[num] = comment
+		num++
+	}
+
+	//fmt.Println("执行到4了")
+	//fmt.Printf("comments: %v\n", comments)
+	//fmt.Printf("comment: %v\n", comment)
+
+	//fmt.Println("执行到5了")
+	//递归获取每层评论
+	for n, comment := range comments {
+		if comment.CommentNum > 0 {
+			comment.NextLayerComments, err = GetCommentsByoID("cID" + strconv.Itoa(int(comment.ID)))
+			comments[n] = comment
+		}
+	}
+
+	//fmt.Println("执行到6了")
 	return
 }
 

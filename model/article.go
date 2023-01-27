@@ -12,4 +12,5 @@ type Article struct {
 	Classification string `json:"classification"`
 	Tags           string `json:"tags"`
 	State          string `json:"state"`
+	Content        string `json:"content"`
 }

@@ -105,8 +105,62 @@ func BriefArticles(c *gin.Context) {
 	return
 }
 
-func DetailArticle(c *gin.Context) {
+// 获取全部分类
+func GetClassification(c *gin.Context) {
+	classification, err := service.GetClassification()
+	if err != nil {
+		util.RespUnexceptedError(c)
+		return
+	}
 
+	util.RespQuerySuccess(c, classification)
+	return
+}
+
+// 获取全部标签
+func GetTags(c *gin.Context) {
+	tags, err := service.GetTags()
+	if err != nil {
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespQuerySuccess(c, tags)
+	return
+}
+
+func DetailArticle(c *gin.Context) {
+	aIDin := c.Param("aID")
+
+	//处理输入参数并校验合法性
+	if len(aIDin) < 1 {
+		util.RespAIDError(c)
+		return
+	}
+
+	aID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(aIDin), []byte("aID"))))
+	if err != nil || aID <= 0 {
+		util.RespAIDError(c)
+		return
+	}
+
+	//获取文章
+	article, err := service.DetailArticle(int64(aID))
+
+	if err != nil {
+		fmt.Println(err)
+		fmt.Printf("err: %T\n", err)
+		if err == sql.ErrNoRows {
+			util.RespAIDError(c)
+		} else {
+			util.RespUnexceptedError(c)
+		}
+		return
+
+	}
+
+	//响应文章
+	util.RespQuerySuccess(c, article)
 }
 
 func MyArticle(c *gin.Context) {

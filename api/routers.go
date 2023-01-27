@@ -14,8 +14,11 @@ func InitRouter() {
 	a := r.Group("/article")
 	{
 		a.GET("/brief", BriefArticles)
-		a.GET("/detail")
+		a.GET("/detail/:aID", DetailArticle)
 	}
+
+	r.GET("/classification", GetClassification)
+	r.GET("/tags", GetTags)
 
 	r.Run(":9099")
 

@@ -10,9 +10,13 @@ import (
 var DB *sql.DB
 
 func InitDB() {
+	//开发时用本地的数据库时使用
 	//db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/rare_earth_mining?charset=utf8mb4&locLocal&parseTime=True")
+	//部署时使用
 	//db, err := sql.Open("mysql", "LvKeliang:lkl12190711@tcp(localhost:3306)/rare_earth_mining?charset=utf8mb4&locLocal&parseTime=True")
+	//开发时用云端的数据库时使用
 	db, err := sql.Open("mysql", "LvKeliang:lkl12190711@tcp(120.79.27.213:3306)/rare_earth_mining?charset=utf8mb4&locLocal&parseTime=True")
+
 	fmt.Println("执行InitDB")
 	if err != nil {
 		fmt.Println("InitDB出错了")
