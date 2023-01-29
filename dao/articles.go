@@ -222,6 +222,13 @@ func DetailArticle(aID int64) (article model.DetailArticle, err error) {
 		article.Comments, err = GetCommentsByoID("aID" + strconv.Itoa(int(aID)))
 	}
 
+	//更新文章查看数
+	_, err = DB.Exec("UPDATE articles SET viewerNum = viewerNum + 1 WHERE ID = ?", aID)
+	if err != nil {
+		fmt.Println("保存文章时更新用户数据出错：", err.Error())
+		return
+	}
+
 	//fmt.Printf("aID" + strconv.Itoa(int(aID)))
 	//fmt.Println(article)
 	//fmt.Println("执行到4了")
@@ -272,6 +279,43 @@ func GetCommentsByoID(oID string) (comments map[int64]model.Comment, err error) 
 	}
 
 	//fmt.Println("执行到6了")
+	return
+}
+
+func SaveArticle(information model.Article) (err error) {
+
+	//保存文章信息
+	result, err := DB.Exec("insert into articles (uID ,title ,classification, tags) value (?,?,?,?)", information.UID, information.Title, information.Classification, information.Tags)
+	if err != nil {
+		fmt.Println("保存文章信息出错：", err.Error())
+		return
+	}
+
+	// 返回新插入数据的id
+	aID, err := result.LastInsertId()
+	if err != nil {
+		return
+	}
+
+	_, err = DB.Exec("UPDATE users SET articleNum = articleNum + 1 WHERE ID = ?", information.UID)
+	if err != nil {
+		fmt.Println("保存文章时更新用户数据出错：", err.Error())
+		return
+	}
+
+	//保存文章内容为文件
+	file, err := os.OpenFile("./data/articles/"+strconv.Itoa(int(aID))+".html", os.O_RDWR|os.O_CREATE, 0644)
+	defer file.Close()
+	//err := ioutil.WriteFile("./data/articles/"+strconv.Itoa(int(aID))+".html", []byte(information.Content), 0644)
+	if err != nil {
+		return
+	}
+
+	if _, err := file.Write([]byte(information.Content)); err != nil {
+		// handle error
+		return err
+	}
+
 	return
 }
 

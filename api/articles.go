@@ -8,6 +8,7 @@ import (
 	"rare_earth_mining_BE/model"
 	"rare_earth_mining_BE/service"
 	"rare_earth_mining_BE/util"
+	"regexp"
 	"strconv"
 )
 
@@ -163,6 +164,93 @@ func DetailArticle(c *gin.Context) {
 	util.RespQuerySuccess(c, article)
 }
 
-func MyArticle(c *gin.Context) {
+// 发布文章
+func PublishArticle(c *gin.Context) {
+	title := c.PostForm("title")
+	content := c.PostForm("content")
+	classification := c.PostForm("classification")
+	tags := c.PostForm("tags")
 
+	//从token获取uID，token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	//验证标题使其不能为空且不能大于100字符，验证正文使其不能为空
+	if len(title) < 1 || len(title) > 100 || len(content) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	//验证分类是否存在
+	if len(classification) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	existsClassification, err := service.GetClassification()
+	if err != nil {
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	classificationArr := regexp.MustCompile(",").Split(classification, -1)
+	for _, str := range classificationArr {
+		reg := regexp.MustCompile(str)
+		if !reg.MatchString(existsClassification) {
+			util.RespFormatError(c)
+			return
+		}
+	}
+
+	//验证标签是否都存在
+	existsTags, err := service.GetTags()
+	if err != nil {
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tagsArr := regexp.MustCompile(",").Split(tags, -1)
+	for _, str := range tagsArr {
+		reg := regexp.MustCompile(str)
+		if !reg.MatchString(existsTags) {
+			util.RespFormatError(c)
+			return
+		}
+	}
+
+	//验证通过后,保存文章(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+	}
+
+	err = service.SaveArticle(model.Article{
+		UID:            int64(tempIntuID),
+		Title:          title,
+		Classification: classification,
+		Tags:           tags,
+		Content:        content,
+	})
+
+	if err != nil {
+		fmt.Println("保存文章出错：", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespOK(c)
 }

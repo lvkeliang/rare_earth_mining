@@ -42,20 +42,20 @@ func SearchUser(attribute string, value string) (u model.User, err error) {
 // 用于按照具有唯一性的字段来查找用户密码
 // attributes: 用于查找user的字段,该字段必须有唯一性[uid,mail,nickname]
 // value：字段的值
-func SearchUserPassword(attribute string, value string) (password string, err error) {
+func SearchUserPassword(attribute string, value string) (uID string, password string, err error) {
 	var row *sql.Row
 	switch attribute {
 	case "uID":
 		//将uid的前面的"uID"字符去除并转化为int类型
 		id, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(value), []byte("uID"))))
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		row = DB.QueryRow("select password from users where ID = ?", id)
+		row = DB.QueryRow("select ID, password from users where ID = ?", id)
 	case "mail":
-		row = DB.QueryRow("select password from users where mail = ?", value)
+		row = DB.QueryRow("select ID, password from users where mail = ?", value)
 	case "nickname":
-		row = DB.QueryRow("select password from users where nickname = ?", value)
+		row = DB.QueryRow("select ID, password from users where nickname = ?", value)
 	default:
 		err = util.FieldsError
 		return
@@ -65,7 +65,7 @@ func SearchUserPassword(attribute string, value string) (password string, err er
 		return
 	}
 
-	err = row.Scan(&password)
+	err = row.Scan(&uID, &password)
 	return
 }
 

@@ -9,7 +9,6 @@ import (
 	"rare_earth_mining_BE/service"
 	"rare_earth_mining_BE/util"
 	"regexp"
-	"strconv"
 )
 
 // 用于匹配mail的正则表达式
@@ -101,7 +100,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	userpassword, err := service.SearchUserPassword("mail", mail)
+	_, userpassword, err := service.SearchUserPassword("mail", mail)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -129,8 +128,12 @@ func Login(c *gin.Context) {
 	u, err := service.SearchUser("mail", mail)
 	//fmt.Println(u.ID)
 	//fmt.Println(strconv.Itoa(int(u.ID)))
-	c.SetCookie("uID", "uID"+strconv.Itoa(int(u.ID)), 604800, "", "/", false, false)
-	util.RespOK(c)
+	//c.SetCookie("uID", "uID"+strconv.Itoa(int(u.ID)), 604800, "", "/", false, false)
+
+	//设置token
+	SetToken(u.Mail, userpassword, c)
+
+	//util.RespOK(c)
 }
 
 // 中间件

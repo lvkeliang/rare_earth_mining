@@ -20,6 +20,8 @@ func InitRouter() {
 	r.GET("/classification", GetClassification)
 	r.GET("/tags", GetTags)
 
+	r.POST("/creator/publishArticle", AuthMiddleware(), PublishArticle)
+
 	r.Run(":9099")
 
 }

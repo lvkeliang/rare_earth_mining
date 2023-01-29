@@ -40,6 +40,17 @@ func RespQuerySuccess(c *gin.Context, data interface{}) {
 		Data:   data,
 	})
 }
+func RespSetTokenSuccess(c *gin.Context, token string) {
+	c.JSON(http.StatusOK, struct {
+		Status int    `json:"status"`
+		Info   string `json:"info"`
+		Token  string `json:"token"`
+	}{
+		Status: 10000,
+		Info:   "success",
+		Token:  token,
+	})
+}
 
 // 客户端操作有误(2xxxx)
 // 输入格式有误
@@ -73,6 +84,17 @@ var DidNotLogin = respTemplate{
 // 回复未登陆
 func RespDidNotLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, DidNotLogin)
+}
+
+// token错误
+var InvalidToken = respTemplate{
+	Status: 20004,
+	Info:   "Invalid token",
+}
+
+// 回复token错误
+func RespInvalidToken(c *gin.Context) {
+	c.JSON(http.StatusForbidden, InvalidToken)
 }
 
 // 个人信息错误(3xxxx)

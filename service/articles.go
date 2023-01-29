@@ -24,3 +24,8 @@ func DetailArticle(aID int64) (article model.DetailArticle, err error) {
 	article, err = dao.DetailArticle(aID)
 	return
 }
+
+func SaveArticle(information model.Article) (err error) {
+	err = dao.SaveArticle(information)
+	return
+}
