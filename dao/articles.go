@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -178,20 +179,38 @@ func DetailArticle(aID int64) (article model.DetailArticle, err error) {
 	//临时储存内容
 	var tempContent []byte
 
-	row := DB.QueryRow("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.ID = ?", aID)
+	/*
+		row := DB.QueryRow("select users.ID, users.nickname, articles.ID, articles.uID, articles.title, articles.publishTime, articles.viewerNum, articles.likeNum, articles.commentNum, articles.classification, articles.tags from users, articles where articles.ID = ?", aID)
+
+		if err = row.Err(); row.Err() != nil {
+			fmt.Printf("err: --- : %v\n", err)
+			return
+		}
+
+		err = row.Scan(&article.User.ID, &article.User.Nickname, &article.Article.ID, &article.Article.UID, &article.Article.Title, &article.Article.PublishTime, &article.Article.ViewerNum, &article.Article.LikeNum, &article.Article.CommentNum, &article.Article.Classification, &article.Article.Tags)
+	*/
+
+	//查询文章信息
+	article.Article, err = QueryArticleByaID(aID)
+	if err != nil {
+		return
+	}
+
+	//查询用户信息
+	row := DB.QueryRow("select ID, nickname from users where ID = ?", article.Article.UID)
 
 	if err = row.Err(); row.Err() != nil {
 		fmt.Printf("err: --- : %v\n", err)
 		return
 	}
 
-	err = row.Scan(&article.User.ID, &article.User.Nickname, &article.Article.ID, &article.Article.UID, &article.Article.Title, &article.Article.PublishTime, &article.Article.ViewerNum, &article.Article.LikeNum, &article.Article.CommentNum, &article.Article.Classification, &article.Article.Tags)
+	err = row.Scan(&article.User.ID, &article.User.Nickname)
 
 	if err != nil {
 		return
 	}
 
-	fmt.Printf("article: --- : %v\n", article)
+	//fmt.Printf("article: --- : %v\n", article)
 	//fmt.Println("执行到2了")
 	//读取文件内容
 	file, err := os.Open("data/articles/" + strconv.Itoa(int(aID)) + ".html")
@@ -232,6 +251,60 @@ func DetailArticle(aID int64) (article model.DetailArticle, err error) {
 	//fmt.Printf("aID" + strconv.Itoa(int(aID)))
 	//fmt.Println(article)
 	//fmt.Println("执行到4了")
+	return
+}
+
+// 保存文章
+func SaveArticle(information model.Article) (err error) {
+
+	//保存文章信息
+	result, err := DB.Exec("insert into articles (uID ,title ,classification, tags) value (?,?,?,?)", information.UID, information.Title, information.Classification, information.Tags)
+	if err != nil {
+		fmt.Println("保存文章信息出错：", err.Error())
+		return
+	}
+
+	// 返回新插入数据的id
+	aID, err := result.LastInsertId()
+	if err != nil {
+		return
+	}
+
+	_, err = DB.Exec("UPDATE users SET articleNum = articleNum + 1 WHERE ID = ?", information.UID)
+	if err != nil {
+		fmt.Println("保存文章时更新用户数据出错：", err.Error())
+		return
+	}
+
+	//保存文章内容为文件
+	file, err := os.OpenFile("./data/articles/"+strconv.Itoa(int(aID))+".html", os.O_RDWR|os.O_CREATE, 0644)
+	defer file.Close()
+	//err := ioutil.WriteFile("./data/articles/"+strconv.Itoa(int(aID))+".html", []byte(information.Content), 0644)
+	if err != nil {
+		return
+	}
+
+	if _, err := file.Write([]byte(information.Content)); err != nil {
+		// handle error
+		return err
+	}
+
+	return
+}
+
+func QueryArticleByaID(aID int64) (article model.Article, err error) {
+	row := DB.QueryRow("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags from articles where ID = ?", aID)
+
+	if err = row.Err(); row.Err() != nil {
+		fmt.Printf("err: --- : %v\n", err)
+		return
+	}
+
+	err = row.Scan(&article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
+
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -282,40 +355,52 @@ func GetCommentsByoID(oID string) (comments map[int64]model.Comment, err error) 
 	return
 }
 
-func SaveArticle(information model.Article) (err error) {
+func QueryCommentBycID(cID int64) (comment model.Comment, err error) {
+	row := DB.QueryRow("select ID, uID, oID, publishTime, likeNum, commentNum, layer, content from comments where ID = ?", cID)
 
-	//保存文章信息
-	result, err := DB.Exec("insert into articles (uID ,title ,classification, tags) value (?,?,?,?)", information.UID, information.Title, information.Classification, information.Tags)
-	if err != nil {
-		fmt.Println("保存文章信息出错：", err.Error())
+	if err = row.Err(); row.Err() != nil {
+		fmt.Printf("err: --- : %v\n", err)
 		return
 	}
 
-	// 返回新插入数据的id
-	aID, err := result.LastInsertId()
-	if err != nil {
-		return
-	}
+	err = row.Scan(&comment.ID, &comment.UID, &comment.OID, &comment.PublishTime, &comment.LikeNum, &comment.CommentNum, &comment.Layer, &comment.Content)
 
-	_, err = DB.Exec("UPDATE users SET articleNum = articleNum + 1 WHERE ID = ?", information.UID)
-	if err != nil {
-		fmt.Println("保存文章时更新用户数据出错：", err.Error())
-		return
-	}
-
-	//保存文章内容为文件
-	file, err := os.OpenFile("./data/articles/"+strconv.Itoa(int(aID))+".html", os.O_RDWR|os.O_CREATE, 0644)
-	defer file.Close()
-	//err := ioutil.WriteFile("./data/articles/"+strconv.Itoa(int(aID))+".html", []byte(information.Content), 0644)
 	if err != nil {
 		return
 	}
 
-	if _, err := file.Write([]byte(information.Content)); err != nil {
-		// handle error
+	return
+}
+
+func AddComment(comment model.Comment) (err error) {
+	//存入评论
+	_, err = DB.Exec("insert into comments (uID, oID, layer, content) values (?,?,?,?)", comment.UID, comment.OID, comment.Layer, comment.Content)
+	if err != nil {
 		return err
 	}
+	if comment.Layer == 1 {
+		//更新文章的评论数
+		aID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(comment.OID), []byte("aID"))))
+		if err != nil || aID <= 0 {
+			return err
+		}
 
+		_, err = DB.Exec("UPDATE articles SET commentNum = commentNum + 1 WHERE ID = ?", aID)
+		if err != nil {
+			return err
+		}
+	} else {
+		//更新评论的评论数
+		cID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(comment.OID), []byte("cID"))))
+		if err != nil || cID <= 0 {
+			return err
+		}
+
+		_, err = DB.Exec("UPDATE comments SET commentNum = commentNum + 1 WHERE ID = ?", cID)
+		if err != nil {
+			return err
+		}
+	}
 	return
 }
 

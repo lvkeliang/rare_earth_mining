@@ -254,3 +254,55 @@ func PublishArticle(c *gin.Context) {
 
 	util.RespOK(c)
 }
+
+// 发表评论
+func PostComment(c *gin.Context) {
+	content := c.PostForm("content")
+	oID := c.PostForm("oID")
+
+	//从token获取uID，token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	//fmt.Println(publisheruID)
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	//验证内容和oID使其不能为空,内容不能大于300个字符
+	if len(content) < 1 || len(content) > 300 || len(oID) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	//验证通过后,保存文章(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+	}
+
+	err = service.PostComment(model.Comment{
+		UID:     int64(tempIntuID),
+		OID:     oID,
+		Content: content,
+	})
+
+	if err != nil {
+		fmt.Println("发表评论出错：", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespOK(c)
+}

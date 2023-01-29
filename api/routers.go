@@ -15,6 +15,7 @@ func InitRouter() {
 	{
 		a.GET("/brief", BriefArticles)
 		a.GET("/detail/:aID", DetailArticle)
+		a.POST("/postComment", AuthMiddleware(), PostComment)
 	}
 
 	r.GET("/classification", GetClassification)
