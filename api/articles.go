@@ -10,6 +10,7 @@ import (
 	"rare_earth_mining_BE/util"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 func BriefArticles(c *gin.Context) {
@@ -171,7 +172,7 @@ func PublishArticle(c *gin.Context) {
 	classification := c.PostForm("classification")
 	tags := c.PostForm("tags")
 
-	//从token获取uID，token已经保证了用户必须登录
+	//从token获取uID,token已经保证了用户必须登录
 	publisheruID, exists := c.Get("uID")
 
 	if !exists {
@@ -260,7 +261,7 @@ func PostComment(c *gin.Context) {
 	content := c.PostForm("content")
 	oID := c.PostForm("oID")
 
-	//从token获取uID，token已经保证了用户必须登录
+	//从token获取uID,token已经保证了用户必须登录
 	publisheruID, exists := c.Get("uID")
 
 	//fmt.Println(publisheruID)
@@ -305,4 +306,43 @@ func PostComment(c *gin.Context) {
 	}
 
 	util.RespOK(c)
+}
+
+func CreatorArticleInformation(c *gin.Context) {
+
+	//从token获取uID,token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	information, err := service.CreatorArticleInformation(int64(tempIntuID), time.Now(), 30)
+
+	if err != nil {
+		fmt.Println("查询信息错误", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespQuerySuccess(c, information)
+
+	return
 }

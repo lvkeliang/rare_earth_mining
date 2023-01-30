@@ -5,23 +5,27 @@ import "github.com/gin-gonic/gin"
 func InitRouter() {
 	r := gin.Default()
 
-	u := r.Group("/user")
+	user := r.Group("/user")
 	{
-		u.POST("/register", Register)
-		u.POST("/login", Login)
+		user.POST("/register", Register)
+		user.POST("/login", Login)
 	}
 
-	a := r.Group("/article")
+	article := r.Group("/article")
 	{
-		a.GET("/brief", BriefArticles)
-		a.GET("/detail/:aID", DetailArticle)
-		a.POST("/postComment", AuthMiddleware(), PostComment)
+		article.GET("/brief", BriefArticles)
+		article.GET("/detail/:aID", DetailArticle)
+		article.POST("/postComment", AuthMiddleware(), PostComment)
 	}
 
 	r.GET("/classification", GetClassification)
 	r.GET("/tags", GetTags)
 
-	r.POST("/creator/publishArticle", AuthMiddleware(), PublishArticle)
+	creator := r.Group("/creator")
+	{
+		creator.POST("/publishArticle", AuthMiddleware(), PublishArticle)
+		creator.GET("/information", AuthMiddleware(), CreatorArticleInformation)
+	}
 
 	r.Run(":9099")
 

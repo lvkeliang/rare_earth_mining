@@ -11,6 +11,6 @@ type Article struct {
 	CommentNum     int64  `json:"commentNum"`
 	Classification string `json:"classification"`
 	Tags           string `json:"tags"`
-	State          string `json:"state"`
+	State          int64  `json:"state"`
 	Content        string `json:"content"`
 }

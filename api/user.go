@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"rare_earth_mining_BE/model"
 	"rare_earth_mining_BE/service"
 	"rare_earth_mining_BE/util"
@@ -136,6 +135,7 @@ func Login(c *gin.Context) {
 	//util.RespOK(c)
 }
 
+/*
 // 中间件
 // 必须在登录状态才能访问
 // 未登录则重定向到登录页面
@@ -177,7 +177,9 @@ func LoginRequired() gin.HandlerFunc {
 		return
 	}
 }
+*/
 
+/*
 // 中间件
 // 必须在不登录状态才能访问
 // 已登录则重定向到首页页面
@@ -210,3 +212,4 @@ func NotLoginRequired() gin.HandlerFunc {
 		return
 	}
 }
+*/

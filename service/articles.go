@@ -7,6 +7,7 @@ import (
 	"rare_earth_mining_BE/util"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.BriefArticleInformation, err error) {
@@ -81,5 +82,110 @@ func PostComment(comment model.Comment) (err error) {
 	//fmt.Println("执行到7了")
 	err = dao.AddComment(comment)
 	//fmt.Println("执行到8了")
+	return
+}
+
+func CreatorArticleInformation(uID int64, latestDate time.Time, day int64) (information model.CreatorArticleInformation, err error) {
+
+	//初始化
+	information = model.CreatorArticleInformation{
+		ViewerNum:  make(map[int64]int64),
+		LikeNum:    make(map[int64]int64),
+		CommentNum: make(map[int64]int64),
+		CollectNum: make(map[int64]int64),
+	}
+
+	articles, err := dao.QueryArticlesByuID(uID)
+	if err != nil {
+		return
+	}
+
+	//fmt.Println("articles: ", articles)
+	var tempInformation model.CreatorArticleInformation
+
+	tempInformation.CommentNum = make(map[int64]int64)
+	tempInformation.LikeNum = make(map[int64]int64)
+	tempInformation.CollectNum = make(map[int64]int64)
+	tempInformation.ViewerNum = make(map[int64]int64)
+
+	var oIDList []string
+	for _, article := range articles {
+		oIDList = append(oIDList, "aID"+strconv.Itoa(int(article.ID)))
+	}
+
+	information.CommentNum, err = dao.GetArticleDailyCommentsNum(oIDList, latestDate, day)
+	if err != nil {
+		return
+	}
+
+	information.LikeNum, err = dao.GetArticleDailyLikesNum(oIDList, latestDate, day)
+	if err != nil {
+		return
+	}
+
+	information.CollectNum, err = dao.GetArticleDailyCollectNum(oIDList, latestDate, day)
+	if err != nil {
+		return
+	}
+
+	/*
+		for _, article := range articles {
+
+			//for i := 0; articles[int64(i)] != nil; i++ {
+			//article := articles[int64(i)]
+
+			if article.State == 2 {
+
+				tempStrcID := "aID" + strconv.Itoa(int(article.ID))
+				fmt.Println("cID: ", tempStrcID)
+
+				/*
+					//获取每天的评论数
+					tempInformation.CommentNum, err = dao.GetArticleDailyCommentsNum(tempStrcID, latestDate, day)
+					if err != nil {
+						return
+					}
+
+				//fmt.Println("CommentNum: ", tempInformation.CommentNum)
+				//获取每天的点赞数
+
+
+				tempInformation.LikeNum, err = dao.GetArticleDailyLikeNum(tempStrcID, latestDate, day)
+				if err != nil {
+					return
+				}
+
+				//fmt.Println("LikeNum: ", tempInformation.LikeNum)
+				//获取每天的收藏数
+				tempInformation.CollectNum, err = dao.GetArticleDailyCollectNum(tempStrcID, latestDate, day)
+				if err != nil {
+					return
+				}
+
+				//fmt.Println("CollectNum: ", tempInformation.CollectNum)
+				//将每篇文章的数据累计,得到所有文章的总数据
+
+					for key, _ := range tempInformation.CommentNum {
+						fmt.Println("文章的数据累计key: ", key)
+						information.CommentNum[key] += tempInformation.CommentNum[key]
+					}
+
+				for key, _ := range tempInformation.LikeNum {
+					information.LikeNum[key] += tempInformation.LikeNum[key]
+				}
+
+				for key, _ := range tempInformation.CollectNum {
+					information.CollectNum[key] += tempInformation.CollectNum[key]
+				}
+
+				for key,_ := range tempInformation.CommentNum{
+					information.CommentNum[key] += tempInformation.CommentNum[key]
+				}
+			}
+
+			fmt.Println("lastinformation.Comment: ", information.CommentNum)
+		}
+	*/
+
 	return
 }

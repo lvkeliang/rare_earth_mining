@@ -9,6 +9,7 @@ import (
 	"rare_earth_mining_BE/util"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func BriefArticles(page model.Page) (briefArticleInformations map[int64]model.BriefArticleInformation, err error) {
@@ -432,3 +433,301 @@ func SearchApprovedArticles() (articles map[int64]model.Article, err error) {
 		num++
 	}
 }*/
+
+func QueryArticlesByuID(uID int64) (articles map[int64]model.Article, err error) {
+
+	//初始化
+	articles = make(map[int64]model.Article)
+
+	rows, err := DB.Query("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags, state from articles where uID = ? order by ID desc", uID)
+
+	if err != nil {
+		//fmt.Println("执行到2了")
+		return articles, err
+	}
+
+	defer rows.Close()
+
+	num := 0
+	var tempArticle model.Article
+	for rows.Next() {
+
+		err = rows.Scan(&tempArticle.ID, &tempArticle.UID, &tempArticle.Title, &tempArticle.PublishTime, &tempArticle.ViewerNum, &tempArticle.LikeNum, &tempArticle.CommentNum, &tempArticle.Classification, &tempArticle.Tags, &tempArticle.State)
+		if err != nil {
+			return articles, err
+		}
+
+		articles[int64(num)] = tempArticle
+		num++
+	}
+
+	return
+}
+
+// 获取文章列表中，所有文章从指定日期往前指定天数的每日的总评论数
+func GetArticleDailyCommentsNum(oIDList []string, latestDate time.Time, day int64) (dailyCommentsNum map[int64]int64, err error) {
+
+	//初始化
+	dailyCommentsNum = make(map[int64]int64)
+
+	oIDListStr := "\"" + strings.Trim(strings.Replace(fmt.Sprint(oIDList), " ", "\",\"", -1), "[]") + "\""
+	//fmt.Println("oIDListStr: ---- : ", oIDListStr)
+
+	//select date(publishTime) AS date, COUNT(*) from comments where oID IN ("aID21","aID20","aID19","aID17","aID16","aID14") and date(publishTime) <= "2023-01-30" GROUP BY date order by date desc LIMIT 30
+	//rows, err := DB.Query("select date(publishTime) AS date, COUNT(*) from comments where oID IN (?) and date(publishTime) <= ? GROUP BY date order by date desc LIMIT ?", "\""+oIDListStr+"\"", latestDate.Format("2006-01-02"), day)
+
+	//查询文章列表中，所有文章从指定日期往前指定天数的每日的总评论数
+	rows, err := DB.Query("select date(publishTime) AS date, COUNT(*) from comments where oID IN ("+oIDListStr+") and date(publishTime) <= ? GROUP BY date order by date desc LIMIT ?", latestDate.Format("2006-01-02"), day)
+
+	if err != nil {
+		return dailyCommentsNum, err
+	}
+
+	defer rows.Close()
+
+	var tempNum int64
+	var tempTime string
+	result := make(map[string]int64)
+
+	for rows.Next() {
+		err = rows.Scan(&tempTime, &tempNum)
+		if err != nil {
+			return dailyCommentsNum, err
+		}
+		//fmt.Println("tempTime: ", tempTime)
+		result[tempTime] = tempNum
+		//fmt.Println("result[tempTime]: ", result[tempTime])
+	}
+
+	//比对日期,result中如果存在相同的日期,则数量就取reusult中的值,否则就是0
+	for ; day >= 0; day-- {
+		//fmt.Println("day-: ", day)
+		d, _ := time.ParseDuration(strconv.Itoa(int(day*-24)) + "h")
+		tempDate := latestDate.Add(d).Format("2006-01-02") + "T00:00:00Z"
+		//fmt.Println("tempDate: ", tempDate)
+		//fmt.Println("result[tempDate]: ", result[tempDate])
+		if result[tempDate] > 0 {
+			dailyCommentsNum[day] = result[tempDate]
+		} else {
+			dailyCommentsNum[day] = 0
+		}
+	}
+	//fmt.Println("dailyCommentsNum-----: ", dailyCommentsNum)
+
+	return
+}
+
+// 获取文章列表中，所有文章从指定日期往前指定天数的每日的总点赞数
+func GetArticleDailyLikesNum(oIDList []string, latestDate time.Time, day int64) (dailyLikesNum map[int64]int64, err error) {
+
+	//初始化
+	dailyLikesNum = make(map[int64]int64)
+
+	oIDListStr := "\"" + strings.Trim(strings.Replace(fmt.Sprint(oIDList), " ", "\",\"", -1), "[]") + "\""
+	//fmt.Println("oIDListStr: ---- : ", oIDListStr)
+
+	//select date(publishTime) AS date, COUNT(*) from comments where oID IN ("aID21","aID20","aID19","aID17","aID16","aID14") and date(publishTime) <= "2023-01-30" GROUP BY date order by date desc LIMIT 30
+	//rows, err := DB.Query("select date(publishTime) AS date, COUNT(*) from comments where oID IN (?) and date(publishTime) <= ? GROUP BY date order by date desc LIMIT ?", "\""+oIDListStr+"\"", latestDate.Format("2006-01-02"), day)
+
+	//查询文章列表中，所有文章从指定日期往前指定天数的每日的总评论数
+	rows, err := DB.Query("select date(time) AS date, COUNT(*) from likes where oID IN ("+oIDListStr+") and date(time) <= ? GROUP BY date order by date desc LIMIT ?", latestDate.Format("2006-01-02"), day)
+
+	if err != nil {
+		return dailyLikesNum, err
+	}
+
+	defer rows.Close()
+
+	var tempNum int64
+	var tempTime string
+	result := make(map[string]int64)
+
+	for rows.Next() {
+		err = rows.Scan(&tempTime, &tempNum)
+		if err != nil {
+			return dailyLikesNum, err
+		}
+		//fmt.Println("tempTime: ", tempTime)
+		result[tempTime] = tempNum
+		//fmt.Println("result[tempTime]: ", result[tempTime])
+	}
+
+	//比对日期,result中如果存在相同的日期,则数量就取reusult中的值,否则就是0
+	for ; day >= 0; day-- {
+		//fmt.Println("day-: ", day)
+		d, _ := time.ParseDuration(strconv.Itoa(int(day*-24)) + "h")
+		tempDate := latestDate.Add(d).Format("2006-01-02") + "T00:00:00Z"
+		//fmt.Println("tempDate: ", tempDate)
+		//fmt.Println("result[tempDate]: ", result[tempDate])
+		if result[tempDate] > 0 {
+			dailyLikesNum[day] = result[tempDate]
+		} else {
+			dailyLikesNum[day] = 0
+		}
+	}
+	//fmt.Println("dailyLikesNum-----: ", dailyLikesNum)
+
+	return
+}
+
+// 获取文章列表中，所有文章从指定日期往前指定天数的每日的总收藏数
+func GetArticleDailyCollectNum(oIDList []string, latestDate time.Time, day int64) (dailyCollectNum map[int64]int64, err error) {
+
+	//初始化
+	dailyCollectNum = make(map[int64]int64)
+
+	oIDListStr := "\"" + strings.Trim(strings.Replace(fmt.Sprint(oIDList), " ", "\",\"", -1), "[]") + "\""
+	//fmt.Println("oIDListStr: ---- : ", oIDListStr)
+
+	//select date(publishTime) AS date, COUNT(*) from comments where oID IN ("aID21","aID20","aID19","aID17","aID16","aID14") and date(publishTime) <= "2023-01-30" GROUP BY date order by date desc LIMIT 30
+	//rows, err := DB.Query("select date(publishTime) AS date, COUNT(*) from comments where oID IN (?) and date(publishTime) <= ? GROUP BY date order by date desc LIMIT ?", "\""+oIDListStr+"\"", latestDate.Format("2006-01-02"), day)
+
+	//查询文章列表中，所有文章从指定日期往前指定天数的每日的总评论数
+	rows, err := DB.Query("select date(time) AS date, COUNT(*) from collections where oID IN ("+oIDListStr+") and date(time) <= ? GROUP BY date order by date desc LIMIT ?", latestDate.Format("2006-01-02"), day)
+
+	if err != nil {
+		return dailyCollectNum, err
+	}
+
+	defer rows.Close()
+
+	var tempNum int64
+	var tempTime string
+	result := make(map[string]int64)
+
+	for rows.Next() {
+		err = rows.Scan(&tempTime, &tempNum)
+		if err != nil {
+			return dailyCollectNum, err
+		}
+		//fmt.Println("tempTime: ", tempTime)
+		result[tempTime] = tempNum
+		//fmt.Println("result[tempTime]: ", result[tempTime])
+	}
+
+	//比对日期,result中如果存在相同的日期,则数量就取reusult中的值,否则就是0
+	for ; day >= 0; day-- {
+		//fmt.Println("day-: ", day)
+		d, _ := time.ParseDuration(strconv.Itoa(int(day*-24)) + "h")
+		tempDate := latestDate.Add(d).Format("2006-01-02") + "T00:00:00Z"
+		//fmt.Println("tempDate: ", tempDate)
+		//fmt.Println("result[tempDate]: ", result[tempDate])
+		if result[tempDate] > 0 {
+			dailyCollectNum[day] = result[tempDate]
+		} else {
+			dailyCollectNum[day] = 0
+		}
+	}
+	//fmt.Println("dailyLikesNum-----: ", dailyLikesNum)
+
+	return
+}
+
+/*
+func GetArticleDailyCommentsNum(oID string, latestDate time.Time, day int64) (dailyCommentsNum map[int64]int64, err error) {
+
+	//初始化
+	dailyCommentsNum = make(map[int64]int64)
+
+	//fmt.Println("oID: ", oID)
+
+	var tempNum int64
+	var i int64 = 0
+
+	for ; i < day; i++ {
+
+		d, _ := time.ParseDuration(strconv.Itoa(int(i*-24)) + "h")
+		date := latestDate.Add(d).Format("2006-01-02")
+
+		//fmt.Println("date: ", date)
+
+		row := DB.QueryRow("select COUNT(*) from comments where oID = ? and date(publishTime) = ?", oID, date)
+		//row := DB.QueryRow("select COUNT(*) from comments where oID = ? order by ID desc LIMIT ?", oID, date)
+
+		if err = row.Err(); row.Err() != nil {
+			fmt.Printf("err: --- : %v\n", err)
+			return
+		}
+
+		err = row.Scan(&tempNum)
+
+		//fmt.Println("tempNum: ", tempNum)
+
+		if err != nil {
+			return
+		}
+
+		dailyCommentsNum[i] = tempNum
+		//fmt.Printf("dailyCommentsNum[%v]: %v\n", i, dailyCommentsNum)
+
+	}
+
+	return
+}*/
+/*
+func GetArticleDailyLikeNum(oID string, latestDate time.Time, day int64) (dailyLikesNum map[int64]int64, err error) {
+
+	//初始化
+	dailyLikesNum = make(map[int64]int64)
+
+	var tempNum int64
+	var i int64 = 0
+
+	for ; i < day; i++ {
+
+		d, _ := time.ParseDuration(strconv.Itoa(int(i*-24)) + "h")
+		date := latestDate.Add(d).Format("2006-01-02")
+
+		row := DB.QueryRow("select COUNT(*) from likes where oID = ? and date(time) = ?", oID, date)
+
+		if err = row.Err(); row.Err() != nil {
+			fmt.Printf("err: --- : %v\n", err)
+			return
+		}
+
+		err = row.Scan(&tempNum)
+
+		if err != nil {
+			return
+		}
+
+		dailyLikesNum[i] = tempNum
+
+	}
+
+	return
+}*/
+/*
+func GetArticleDailyCollectNum(oID string, latestDate time.Time, day int64) (dailyCollectNum map[int64]int64, err error) {
+
+	//初始化
+	dailyCollectNum = make(map[int64]int64)
+
+	var tempNum int64
+	var i int64 = 0
+
+	for ; i < day; i++ {
+
+		d, _ := time.ParseDuration(strconv.Itoa(int(i*-24)) + "h")
+		date := latestDate.Add(d).Format("2006-01-02")
+
+		row := DB.QueryRow("select COUNT(*) from collections where oID = ? and date(time) = ?", oID, date)
+
+		if err = row.Err(); row.Err() != nil {
+			fmt.Printf("err: --- : %v\n", err)
+			return
+		}
+
+		err = row.Scan(&tempNum)
+
+		if err != nil {
+			return
+		}
+
+		dailyCollectNum[i] = tempNum
+
+	}
+
+	return
+}
+*/
