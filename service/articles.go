@@ -336,7 +336,7 @@ func CreatorArticleInformation(uID int64, latestDate time.Time, day int64) (info
 }
 
 // 获取一个用户的文章,state为任意
-func QueryArticleByuID(uID int64) (article model.Article, err error) {
-	article, err = dao.QueryArticleByuID(uID)
+func QueryArticlesByuID(uID int64) (articles map[int64]model.Article, err error) {
+	articles, err = dao.QueryArticlesByuID(uID)
 	return
 }

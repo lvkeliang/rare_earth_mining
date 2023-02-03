@@ -513,12 +513,12 @@ func MyArticles(c *gin.Context) {
 		util.RespUnexceptedError(c)
 	}
 
-	myArticle, err := service.QueryArticleByuID(int64(tempIntuID))
+	myArticles, err := service.QueryArticlesByuID(int64(tempIntuID))
 
 	if err != nil {
 		util.RespUnexceptedError(c)
 		return
 	}
 
-	util.RespQuerySuccess(c, myArticle)
+	util.RespQuerySuccess(c, myArticles)
 }

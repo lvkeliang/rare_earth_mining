@@ -741,22 +741,29 @@ func GetArticleDailyCollectNum(oIDList []string, latestDate time.Time, day int64
 	return
 }
 
-func QueryArticleByuID(uID int64) (article model.Article, err error) {
-	row := DB.QueryRow("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags from articles where uID = ?", uID)
+/*func QueryArticlesByuID(uID int64) (articles map[int64]model.Article, err error) {
+	articles = make(map[int64]model.Article)
 
-	if err = row.Err(); row.Err() != nil {
-		//fmt.Printf("err2: --- : %v\n", err)
-		return
-	}
-
-	err = row.Scan(&article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
-
+	rows, err := DB.Query("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags from articles where uID = ?", uID)
+	defer rows.Close()
 	if err != nil {
-		//fmt.Printf("err3: --- : %v\n", err)
-		return
+		return articles, err
 	}
+
+	var num int64= 0
+	var tempArticle model.Article
+	for rows.Next() {
+		err = rows.Scan(&tempArticle.ID, &tempArticle.UID, &tempArticle.Title, &tempArticle.PublishTime, &tempArticle.ViewerNum, &tempArticle.LikeNum, &tempArticle.CommentNum, &tempArticle.Classification, &tempArticle.Tags)
+		if err != nil {
+			return articles, err
+		}
+		//存入comments
+		articles[num] = tempArticle
+		num++
+	}
+
 	return
-}
+}*/
 
 /*
 func GetArticleDailyCommentsNum(oID string, latestDate time.Time, day int64) (dailyCommentsNum map[int64]int64, err error) {
