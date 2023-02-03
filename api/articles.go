@@ -10,6 +10,7 @@ import (
 	"rare_earth_mining_BE/util"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -277,7 +278,13 @@ func PostComment(c *gin.Context) {
 		return
 	}
 
-	//验证通过后,保存文章(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	//验证前缀是否正确
+	if !strings.HasPrefix(oID, "aID") && !strings.HasPrefix(oID, "cID") {
+		util.RespFormatError(c)
+		return
+	}
+
+	//验证通过后,保存(此处gin.any的转换，必须先用断言转换成string,再转换成int)
 	tempStruID, ok := publisheruID.(string)
 	if !ok {
 		fmt.Println(ok)
@@ -301,6 +308,138 @@ func PostComment(c *gin.Context) {
 
 	if err != nil {
 		fmt.Println("发表评论出错：", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespOK(c)
+}
+
+// 点赞
+func Like(c *gin.Context) {
+	oID := c.PostForm("oID")
+
+	//验证前缀是否正确
+	if !strings.HasPrefix(oID, "aID") && !strings.HasPrefix(oID, "cID") {
+		util.RespFormatError(c)
+		return
+	}
+
+	//从token获取uID,token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	//fmt.Println(publisheruID)
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	//验证内容和oID使其不能为空,内容不能大于300个字符
+	if len(oID) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	//验证通过后,保存(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+	}
+
+	//直接套用comment的模板
+	err = service.Like(model.Comment{
+		UID: int64(tempIntuID),
+		OID: oID,
+	})
+
+	if err != sql.ErrNoRows && err != nil {
+		fmt.Println(err.Error())
+		//处理已经点赞过了
+		if err == util.AreadyLikedError {
+			util.RespAreadyLiked(c)
+			return
+		} else if err == util.NoArticleExistsError || err == util.NoCommectExistsError {
+			util.RespFormatError(c)
+			return
+		}
+		fmt.Println("点赞出错：", err)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespOK(c)
+}
+
+// 收藏
+func Collect(c *gin.Context) {
+	oID := c.PostForm("oID")
+
+	//验证前缀是否正确
+	if !strings.HasPrefix(oID, "aID") && !strings.HasPrefix(oID, "cID") {
+		util.RespFormatError(c)
+		return
+	}
+
+	//从token获取uID,token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	//fmt.Println(publisheruID)
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	//验证内容和oID使其不能为空,内容不能大于300个字符
+	if len(oID) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	//验证通过后,保存(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+	}
+
+	//直接套用comment的模板
+	err = service.Collect(model.Comment{
+		UID: int64(tempIntuID),
+		OID: oID,
+	})
+
+	if err != sql.ErrNoRows && err != nil {
+		fmt.Println(err.Error())
+		//处理已经点赞过了
+		if err == util.AreadyCollectedError {
+			util.RespAreadyCollected(c)
+			return
+		} else if err == util.NoArticleExistsError || err == util.NoCommectExistsError {
+			util.RespFormatError(c)
+			return
+		}
+		fmt.Println("点赞出错：", err)
 		util.RespUnexceptedError(c)
 		return
 	}
@@ -345,4 +484,41 @@ func CreatorArticleInformation(c *gin.Context) {
 	util.RespQuerySuccess(c, information)
 
 	return
+}
+
+func MyArticles(c *gin.Context) {
+	//从token获取uID,token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+
+	//fmt.Println(publisheruID)
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	//验证通过后,保存(此处gin.any的转换，必须先用断言转换成string,再转换成int)
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+	}
+
+	myArticle, err := service.QueryArticleByuID(int64(tempIntuID))
+
+	if err != nil {
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	util.RespQuerySuccess(c, myArticle)
 }

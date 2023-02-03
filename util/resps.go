@@ -164,6 +164,24 @@ func RespNoArticleExit(c *gin.Context) {
 	c.JSON(http.StatusOK, NoArticleExit)
 }
 
+var AreadyLiked = respTemplate{
+	Status: 40003,
+	Info:   "It is aready liked",
+}
+
+func RespAreadyLiked(c *gin.Context) {
+	c.JSON(http.StatusOK, AreadyLiked)
+}
+
+var AreadyCollected = respTemplate{
+	Status: 40004,
+	Info:   "It is aready Collected",
+}
+
+func RespAreadyCollected(c *gin.Context) {
+	c.JSON(http.StatusOK, AreadyCollected)
+}
+
 // 服务器错误(5xxxx)
 // 数据库查询错误(查询的字段不符）
 var FieldsMatchError = respTemplate{

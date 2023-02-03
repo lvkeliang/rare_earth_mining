@@ -2,6 +2,7 @@ package dao
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"io"
 	"os"
@@ -297,13 +298,14 @@ func QueryArticleByaID(aID int64) (article model.Article, err error) {
 	row := DB.QueryRow("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags from articles where ID = ?", aID)
 
 	if err = row.Err(); row.Err() != nil {
-		fmt.Printf("err: --- : %v\n", err)
+		//fmt.Printf("err2: --- : %v\n", err)
 		return
 	}
 
 	err = row.Scan(&article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
 
 	if err != nil {
+		//fmt.Printf("err3: --- : %v\n", err)
 		return
 	}
 	return
@@ -376,6 +378,7 @@ func QueryCommentBycID(cID int64) (comment model.Comment, err error) {
 func AddComment(comment model.Comment) (err error) {
 	//存入评论
 	_, err = DB.Exec("insert into comments (uID, oID, layer, content) values (?,?,?,?)", comment.UID, comment.OID, comment.Layer, comment.Content)
+	_, err = DB.Exec("UPDATE users SET commentNum = commentNum + 1 WHERE ID = ?", comment.UID)
 	if err != nil {
 		return err
 	}
@@ -398,6 +401,121 @@ func AddComment(comment model.Comment) (err error) {
 		}
 
 		_, err = DB.Exec("UPDATE comments SET commentNum = commentNum + 1 WHERE ID = ?", cID)
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+// 判断是否点赞过了
+func IsLiked(like model.Comment) (isLiked bool, err error) {
+	row := DB.QueryRow("select ID from likes where uID = ? and oID = ?", like.UID, like.OID)
+
+	if err = row.Err(); row.Err() != nil {
+		fmt.Printf("err1: --- : %v\n", err)
+		return
+	}
+
+	var temp int64
+	err = row.Scan(&temp)
+
+	if err == sql.ErrNoRows {
+		return true, err
+	}
+
+	/*if temp > 0 {
+		return true, err
+	} else {
+		return false, err
+	}*/
+	return false, err
+}
+
+// 判断是否点赞过了
+func IsCollected(collect model.Comment) (IsCollected bool, err error) {
+	row := DB.QueryRow("select ID from collections where uID = ? and oID = ?", collect.UID, collect.OID)
+
+	if err = row.Err(); row.Err() != nil {
+		fmt.Printf("err1: --- : %v\n", err)
+		return
+	}
+
+	var temp int64
+	err = row.Scan(&temp)
+
+	if err == sql.ErrNoRows {
+
+		return true, err
+	}
+
+	/*if temp > 0 {
+		return true, err
+	} else {
+		return false, err
+	}*/
+	return false, err
+}
+
+func Like(like model.Comment) (err error) {
+	//存入点赞
+	_, err = DB.Exec("insert into likes (uID, oID) values (?,?)", like.UID, like.OID)
+	_, err = DB.Exec("UPDATE users SET likeNum = likeNum + 1 WHERE ID = ?", like.UID)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(like.OID, "aID") {
+		//更新文章的点赞数
+		aID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(like.OID), []byte("aID"))))
+		if err != nil || aID <= 0 {
+			return err
+		}
+
+		_, err = DB.Exec("UPDATE articles SET likeNum = likeNum + 1 WHERE ID = ?", aID)
+		if err != nil {
+			return err
+		}
+	} else {
+		//更新评论的点赞数
+		cID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(like.OID), []byte("cID"))))
+		if err != nil || cID <= 0 {
+			return err
+		}
+
+		_, err = DB.Exec("UPDATE comments SET likeNum = likeNum + 1 WHERE ID = ?", cID)
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func Collect(collect model.Comment) (err error) {
+	//存入收藏
+	_, err = DB.Exec("insert into collections (uID, oID) values (?,?)", collect.UID, collect.OID)
+	_, err = DB.Exec("UPDATE users SET collectNum = collectNum + 1 WHERE ID = ?", collect.UID)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(collect.OID, "aID") {
+		//更新文章的收藏数
+		aID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(collect.OID), []byte("aID"))))
+		if err != nil || aID <= 0 {
+			return err
+		}
+
+		_, err = DB.Exec("UPDATE articles SET collectNum = collectNum + 1 WHERE ID = ?", aID)
+		if err != nil {
+			return err
+		}
+	} else {
+		//更新评论的收藏数
+		cID, err := strconv.Atoi(string(bytes.TrimPrefix([]byte(collect.OID), []byte("cID"))))
+		if err != nil || cID <= 0 {
+			return err
+		}
+
+		_, err = DB.Exec("UPDATE comments SET collectNum = collectNum + 1 WHERE ID = ?", cID)
 		if err != nil {
 			return err
 		}
@@ -620,6 +738,23 @@ func GetArticleDailyCollectNum(oIDList []string, latestDate time.Time, day int64
 	}
 	//fmt.Println("dailyLikesNum-----: ", dailyLikesNum)
 
+	return
+}
+
+func QueryArticleByuID(uID int64) (article model.Article, err error) {
+	row := DB.QueryRow("select ID, uID, title, publishTime, viewerNum, likeNum, commentNum, classification, tags from articles where uID = ?", uID)
+
+	if err = row.Err(); row.Err() != nil {
+		//fmt.Printf("err2: --- : %v\n", err)
+		return
+	}
+
+	err = row.Scan(&article.ID, &article.UID, &article.Title, &article.PublishTime, &article.ViewerNum, &article.LikeNum, &article.CommentNum, &article.Classification, &article.Tags)
+
+	if err != nil {
+		//fmt.Printf("err3: --- : %v\n", err)
+		return
+	}
 	return
 }
 

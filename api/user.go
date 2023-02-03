@@ -8,6 +8,7 @@ import (
 	"rare_earth_mining_BE/service"
 	"rare_earth_mining_BE/util"
 	"regexp"
+	"strconv"
 )
 
 // 用于匹配mail的正则表达式
@@ -133,6 +134,118 @@ func Login(c *gin.Context) {
 	SetToken(u.Mail, userpassword, c)
 
 	//util.RespOK(c)
+}
+
+func UserInformation(c *gin.Context) {
+	uID := c.PostForm("uID")
+
+	if len(uID) < 1 {
+		util.RespFormatError(c)
+		return
+	}
+
+	user, err := service.SearchUser("uID", uID)
+
+	//处理除了没查询到以外的错误
+	if err != nil {
+		if err == util.FieldsError {
+			//处理数据库查询字段不符的错误
+			util.RespFormatError(c)
+			fmt.Println(err)
+		} else if err == sql.ErrNoRows {
+			util.RespUserNotExist(c)
+		} else {
+			//处理意料之外的错误
+			util.RespUnexceptedError(c)
+			fmt.Println(err)
+		}
+		return
+	}
+
+	util.RespQuerySuccess(c, user)
+}
+
+// 编辑用户信息
+func UserProfile(c *gin.Context) {
+	var user model.User
+
+	//从token获取uID,token已经保证了用户必须登录
+	publisheruID, exists := c.Get("uID")
+	//处理uID
+
+	if !exists {
+		util.RespDidNotLogin(c)
+		return
+	}
+
+	tempStruID, ok := publisheruID.(string)
+	if !ok {
+		fmt.Println(ok)
+		fmt.Println(publisheruID)
+		fmt.Println(tempStruID)
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	tempIntuID, err := strconv.Atoi(tempStruID)
+	if err != nil {
+		fmt.Println("uID转换出错：", err.Error())
+		util.RespUnexceptedError(c)
+		return
+	}
+
+	user.Nickname = c.PostForm("nickname")
+	user.Position = c.PostForm("position")
+	user.Company = c.PostForm("company")
+	user.Introduction = c.PostForm("introduction")
+
+	//如果输入了昵称，确保昵称不重复
+	if len(user.Nickname) > 0 {
+		tempUser, err := service.SearchUser("nickname", user.Nickname)
+
+		//处理除了没查询到以外的错误
+		if err != sql.ErrNoRows && int64(tempIntuID) != tempUser.ID {
+			if err == util.FieldsError {
+				//处理数据库查询字段不符的错误
+				util.RespFieldsMatchError(c)
+			} else if err == nil {
+				//处理查询出数据的结果(即昵称重复)
+				util.RespNicknameRepeated(c)
+			} else if err != sql.ErrNoRows {
+				//处理意料之外的错误
+				util.RespUnexceptedError(c)
+			}
+			return
+		}
+
+	} else {
+		//若没输入昵称，则将"用户" + mail作为昵称
+		user.Nickname = "用户" + tempStruID
+	}
+
+	if len(user.Position) < 1 {
+		user.Position = "还没写呢~"
+	}
+
+	if len(user.Company) < 1 {
+		user.Company = "还没写呢~"
+	}
+
+	if len(user.Introduction) < 1 {
+		user.Introduction = "还没写呢~"
+	}
+
+	user.ID = int64(tempIntuID)
+
+	err = service.UserProfile(user)
+
+	if err != nil {
+		fmt.Println(err)
+		util.RespFormatError(c)
+		return
+	}
+
+	util.RespOK(c)
 }
 
 /*

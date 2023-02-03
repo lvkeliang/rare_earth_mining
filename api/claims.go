@@ -54,7 +54,7 @@ func SetToken(mail string, password string, c *gin.Context) {
 		return
 	}
 	// 创建 JWT
-	expireTime := time.Now().Add(time.Hour * 1).Unix()
+	expireTime := time.Now().Add(time.Hour * 24).Unix()
 	claims := &model.Claims{
 		UID: user.UID,
 		StandardClaims: jwt.StandardClaims{

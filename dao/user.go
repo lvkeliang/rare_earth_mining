@@ -74,3 +74,12 @@ func CreateUser(u model.User) (err error) {
 	_, err = DB.Exec("insert into users (mail, nickname, password) values (?,?,?)", u.Mail, u.Nickname, u.Password)
 	return
 }
+
+func UserProfile(user model.User) (err error) {
+	//oIDListStr := "\"" + strings.Trim(strings.Replace(fmt.Sprint(oIDList), " ", "\",\"", -1), "[]") + "\""
+	fmt.Println(user)
+	userStr := "\"" + user.Nickname + "\",\"" + user.Position + "\",\"" + user.Company + "\",\"" + user.Introduction + "\""
+	fmt.Println("-----: ", userStr)
+	_, err = DB.Exec("UPDATE users SET nickname = ?, position = ?, company = ?, introduction = ? WHERE ID = ?", user.Nickname, user.Position, user.Company, user.Introduction, user.ID)
+	return
+}

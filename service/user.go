@@ -26,3 +26,8 @@ func CreateUser(u model.User) error {
 	err := dao.CreateUser(u)
 	return err
 }
+
+func UserProfile(user model.User) (err error) {
+	err = dao.UserProfile(user)
+	return
+}
