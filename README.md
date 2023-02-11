@@ -156,7 +156,7 @@ The following endpoints are currently available:
         - mail (must)
         - password (must)
 
-- GET `/user/information` : Gets the user's information
+- PUT `/user/information` : Gets the user's information
     - format :
         - uID (must)
 
