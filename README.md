@@ -166,7 +166,7 @@ The following endpoints are currently available:
 
 ### article
 
-- GET `/article/brief` : Get brief information for multiple articles
+- PUT `/article/brief` : Get brief information for multiple articles
     - format :
         - mode (must) : newest/popularity/publisher
         - pageNumber (must)
@@ -231,7 +231,7 @@ The API returns data in JSON format.
 
 Get articles on the homepage by real-time popularity ranking:
 
-    GET /articles/brief
+    PUT /article/brief
     {
     "mode": "popularity",
     "pageNumber": 1,
